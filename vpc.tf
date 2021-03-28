@@ -1,4 +1,4 @@
-# Define our VPC
+# Defino VPC Infra1
 resource "aws_vpc" "vpc-infraestructura-1" {
   cidr_block = "${var.vpc_cidr}"
   enable_dns_hostnames = true
@@ -7,7 +7,6 @@ resource "aws_vpc" "vpc-infraestructura-1" {
     Name = "Infraestructura-1"
   }
 }
-
 
 # Define the private subnet
 resource "aws_subnet" "web-subnet" {
@@ -29,7 +28,7 @@ resource "aws_subnet" "middleware-subnet" {
     Name = "Middleware Private Subnet"
   }
 }
-resource "aws_subnet" "db-subnet " {
+resource "aws_subnet" "db-subnet" {
   vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
   cidr_block = "${var.private_db_cidr}"
   availability_zone = "us-east-1b"
@@ -147,4 +146,38 @@ resource "aws_eip" "one"{
  depends_on 		= aws_interet_gateway.gw
 }
 
+
+#Defino VPC Infra2
+
+resource "aws_vpc" "vpc-infraestructura-2" {
+  cidr_block = "${var.vpc2_cidr}"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "Infraestructura-2"
+  }
+}
+
+# Define the private subnet
+resource "aws_subnet" "infra2-subnet" {
+  vpc_id = "${aws_vpc.vpc-infraestructura-2.id}"
+  cidr_block = "${var.private_infra2_cidr}"
+  availability_zone = "us-east-1b"
+
+  tags {
+    Name = "Infra 2 Private Subnet"
+  }
+}
+
+
+#VPC Peering
+resource "aws_vpc_peering_connection" "vpc_peering" {
+  peer_owner_id = var.peer_owner_id
+  peer_vpc_id   = aws_vpc.vpc-infraestructura-1.id
+  vpc_id        = aws_vpc.vpc-infraestructura-2.id
+}
+
+tags = {
+	Name = "infra1-to-infra2"
+}
 

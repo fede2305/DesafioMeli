@@ -29,8 +29,8 @@ variable "vpc2_cidr" {
   default = "10.1.0.0/16"
 }
 
-variable "private_devs_cidr"{
-  description = "CIDR for devs"
+variable "private_infra2_cidr"{
+  description = "CIDR for infra2"
   default = "10.1.0.0/24"
 }
 
