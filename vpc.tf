@@ -1,27 +1,17 @@
 # Define our VPC
-resource "aws_vpc" "default" {
+resource "aws_vpc" "vpc-infraestructura-1" {
   cidr_block = "${var.vpc_cidr}"
   enable_dns_hostnames = true
 
   tags {
-    Name = "desafio-vpc"
+    Name = "Infraestructura-1"
   }
 }
 
-# Define the public subnet
-resource "aws_subnet" "public-subnet" {
-  vpc_id = "${aws_vpc.default.id}"
-  cidr_block = "${var.public_subnet_cidr}"
-  availability_zone = "ap-southeast-1"
-
-  tags {
-    Name = "Web Public Subnet"
-  }
-}
 
 # Define the private subnet
-resource "aws_subnet" "private-subnet" {
-  vpc_id = "${aws_vpc.default.id}"
+resource "aws_subnet" "web-subnet" {
+  vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
   cidr_block = "${var.private_web_cidr}"
   availability_zone = "us-east-1b"
 
@@ -30,8 +20,8 @@ resource "aws_subnet" "private-subnet" {
   }
 }
 
-resource "aws_subnet" "private-subnet" {
-  vpc_id = "${aws_vpc.default.id}"
+resource "aws_subnet" "middleware-subnet" {
+  vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
   cidr_block = "${var.private_middleware_cidr}"
   availability_zone = "us-east-1b"
 
@@ -39,8 +29,8 @@ resource "aws_subnet" "private-subnet" {
     Name = "Middleware Private Subnet"
   }
 }
-resource "aws_subnet" "private-subnet" {
-  vpc_id = "${aws_vpc.default.id}"
+resource "aws_subnet" "db-subnet " {
+  vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
   cidr_block = "${var.private_db_cidr}"
   availability_zone = "us-east-1b"
 
@@ -54,7 +44,7 @@ resource "aws_subnet" "private-subnet" {
 
 # Define the internet gateway
 resource "aws_internet_gateway" "gw" {
-  vpc_id = "${aws_vpc.default.id}"
+  vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
 
   tags {
     Name = "VPC Inet-GW"
@@ -62,8 +52,8 @@ resource "aws_internet_gateway" "gw" {
 }
 
 # Define the route table
-resource "aws_route_table" "web-public-rt" {
-  vpc_id = "${aws_vpc.default.id}"
+resource "aws_route_table" "infra-route-dw" {
+  vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -75,20 +65,32 @@ resource "aws_route_table" "web-public-rt" {
   }
 }
 
-# Assign the route table to the public Subnet
-resource "aws_route_table_association" "web-public-rt" {
-  subnet_id = "${aws_subnet.public-subnet.id}"
-  route_table_id = "${aws_route_table.web-public-rt.id}"
+# Asigno ruta Default a los subnets
+resource "aws_route_table_association" "dw" {
+  subnet_id = "${aws_subnet.web-subnet.id}"
+  route_table_id = "${aws_route_table.infra-route-dw.id}"
+}
+resource "aws_route_table_association" "dw" {
+  subnet_id = "${aws_subnet.middleware-subnet.id}"
+  route_table_id = "${aws_route_table.infra-route-dw.id}"
+}
+resource "aws_route_table_association" "dw" {
+  subnet_id = "${aws_subnet.db-subnet.id}"
+  route_table_id = "${aws_route_table.infra-route-dw.id}"
 }
 
-# Define the security groups
+
+
+# Defino  security groups
 resource "aws_security_group" "sgweb" {
   name = "vpc_test_web"
   description = "Allow incoming HTTP connections & HTTPS access"
+  vpc_id="${aws_vpc.vpn-infraestructura-1.id}"
 
 # Politicas Inbound a web servers
 
   ingress {
+    description = "HTTP"
     from_port = 80
     to_port = 80
     protocol = "tcp"
@@ -96,6 +98,7 @@ resource "aws_security_group" "sgweb" {
   }
 
   ingress {
+    description = "HTTPS"
     from_port = 443
     to_port = 443
     protocol = "tcp"
@@ -120,11 +123,28 @@ resource "aws_security_group" "sgweb" {
 
 # No menciono el subnet de base de datos para que no tenga salida a internet
 
-
-  vpc_id="${aws_vpc.default.id}"
-
   tags {
     Name = "Web Server Inbound and Outbound Policy"
   }
 }
+
+
+#Interfaz con IP del subnet de Web server
+
+resourse "aws_network_interface" "web-server-nic" {
+ subnet_id   	 = aws_subnet.web-subnet.id
+ private_ips 	 = ["10.0.0.50"]
+ security_groups = [aws_seacurity_group.sgweb.id]
+
+}
+
+#Elastic IP para publicar server web
+
+resource "aws_eip" "one"{
+ vpc 			= true
+ network_interface 	= aws_network_interface.web-server-nic.id
+ associate_with_private_ip = "10.0.0.50"
+ depends_on 		= aws_interet_gateway.gw
+}
+
 
