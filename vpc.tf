@@ -3,7 +3,7 @@ resource "aws_vpc" "vpc-infraestructura-1" {
   cidr_block = "${var.vpc_cidr}"
   enable_dns_hostnames = true
 
-  tags {
+  tags = {
     Name = "Infraestructura-1"
   }
 }
@@ -14,7 +14,7 @@ resource "aws_subnet" "web-subnet" {
   cidr_block = "${var.private_web_cidr}"
   availability_zone = "us-east-1b"
 
-  tags {
+  tags = {
     Name = "Web Services Private Subnet"
   }
 }
@@ -24,7 +24,7 @@ resource "aws_subnet" "middleware-subnet" {
   cidr_block = "${var.private_middleware_cidr}"
   availability_zone = "us-east-1b"
 
-  tags {
+  tags = {
     Name = "Middleware Private Subnet"
   }
 }
@@ -33,7 +33,7 @@ resource "aws_subnet" "db-subnet" {
   cidr_block = "${var.private_db_cidr}"
   availability_zone = "us-east-1b"
 
-  tags {
+  tags = {
     Name = "Database Private Subnet"
   }
 }
@@ -45,7 +45,7 @@ resource "aws_subnet" "db-subnet" {
 resource "aws_internet_gateway" "gw" {
   vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
 
-  tags {
+  tags = {
     Name = "VPC Inet-GW"
   }
 }
@@ -59,7 +59,7 @@ resource "aws_route_table" "infra-route-dg" {
     gateway_id = "${aws_internet_gateway.gw.id}"
   }
 
-  tags {
+  tags = {
     Name = "Public 0.0.0.0/0 - Ruta Default Gateway"
   }
 }
@@ -67,15 +67,15 @@ resource "aws_route_table" "infra-route-dg" {
 # Asigno ruta Default a los subnets
 resource "aws_route_table_association" "dg-web" {
   subnet_id = "${aws_subnet.web-subnet.id}"
-  route_table_id = "${aws_route_table.infra-route-dw.id}"
+  route_table_id = "${aws_route_table.infra-route-dg.id}"
 }
 resource "aws_route_table_association" "dg-middle" {
   subnet_id = "${aws_subnet.middleware-subnet.id}"
-  route_table_id = "${aws_route_table.infra-route-dw.id}"
+  route_table_id = "${aws_route_table.infra-route-dg.id}"
 }
 resource "aws_route_table_association" "dg-db" {
   subnet_id = "${aws_subnet.db-subnet.id}"
-  route_table_id = "${aws_route_table.infra-route-dw.id}"
+  route_table_id = "${aws_route_table.infra-route-dg.id}"
 }
 
 
@@ -84,7 +84,7 @@ resource "aws_route_table_association" "dg-db" {
 resource "aws_security_group" "sgweb" {
   name = "vpc_test_web"
   description = "Allow incoming HTTP connections & HTTPS access"
-  vpc_id="${aws_vpc.vpn-infraestructura-1.id}"
+  vpc_id="${aws_vpc.vpc-infraestructura-1.id}"
 
 # Politicas Inbound a web servers
 
@@ -110,19 +110,19 @@ resource "aws_security_group" "sgweb" {
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
-    cidr_blocks     = ["private_web_cidr"]
+    cidr_blocks     = ["${var.private_web_cidr}"]
   }
 
    egress {
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
-    cidr_blocks     = ["private_middleware_cidr"]
+    cidr_blocks     = ["${var.private_middleware_cidr}"]
   }
 
 # No menciono el subnet de base de datos para que no tenga salida a internet
 
-  tags {
+  tags = {
     Name = "Web Server Inbound and Outbound Policy"
   }
 }
@@ -133,7 +133,7 @@ resource "aws_security_group" "sgweb" {
 resource "aws_network_interface" "web-server-nic" {
  subnet_id   	 = aws_subnet.web-subnet.id
  private_ips 	 = ["10.0.0.50"]
- security_groups = [aws_seacurity_group.sgweb.id]
+ security_groups = [aws_security_group.sgweb.id]
 
 }
 
@@ -143,7 +143,7 @@ resource "aws_eip" "one"{
  vpc 			= true
  network_interface 	= aws_network_interface.web-server-nic.id
  associate_with_private_ip = "10.0.0.50"
- depends_on 		= aws_interet_gateway.gw
+ depends_on 		= [aws_internet_gateway.gw]
 }
 
 
@@ -153,7 +153,7 @@ resource "aws_vpc" "vpc-infraestructura-2" {
   cidr_block = "${var.vpc2_cidr}"
   enable_dns_hostnames = true
 
-  tags {
+  tags = {
     Name = "Infraestructura-2"
   }
 }
@@ -164,7 +164,7 @@ resource "aws_subnet" "infra2-subnet" {
   cidr_block = "${var.private_infra2_cidr}"
   availability_zone = "us-east-1b"
 
-  tags {
+  tags = {
     Name = "Infra 2 Private Subnet"
   }
 }
@@ -172,7 +172,7 @@ resource "aws_subnet" "infra2-subnet" {
 
 #VPC Peering
 resource "aws_vpc_peering_connection" "vpc_peering" {
-  peer_owner_id = var.peer_owner_id
+  #peer_owner_id = var.peer_owner_id
   peer_vpc_id   = aws_vpc.vpc-infraestructura-1.id
   vpc_id        = aws_vpc.vpc-infraestructura-2.id
 
