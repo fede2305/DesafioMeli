@@ -51,7 +51,7 @@ resource "aws_internet_gateway" "gw" {
 }
 
 # Define the route table
-resource "aws_route_table" "infra-route-dw" {
+resource "aws_route_table" "infra-route-dg" {
   vpc_id = "${aws_vpc.vpc-infraestructura-1.id}"
 
   route {
@@ -65,15 +65,15 @@ resource "aws_route_table" "infra-route-dw" {
 }
 
 # Asigno ruta Default a los subnets
-resource "aws_route_table_association" "dw" {
+resource "aws_route_table_association" "dg-web" {
   subnet_id = "${aws_subnet.web-subnet.id}"
   route_table_id = "${aws_route_table.infra-route-dw.id}"
 }
-resource "aws_route_table_association" "dw" {
+resource "aws_route_table_association" "dg-middle" {
   subnet_id = "${aws_subnet.middleware-subnet.id}"
   route_table_id = "${aws_route_table.infra-route-dw.id}"
 }
-resource "aws_route_table_association" "dw" {
+resource "aws_route_table_association" "dg-db" {
   subnet_id = "${aws_subnet.db-subnet.id}"
   route_table_id = "${aws_route_table.infra-route-dw.id}"
 }
@@ -130,7 +130,7 @@ resource "aws_security_group" "sgweb" {
 
 #Interfaz con IP del subnet de Web server
 
-resourse "aws_network_interface" "web-server-nic" {
+resource "aws_network_interface" "web-server-nic" {
  subnet_id   	 = aws_subnet.web-subnet.id
  private_ips 	 = ["10.0.0.50"]
  security_groups = [aws_seacurity_group.sgweb.id]
@@ -175,9 +175,9 @@ resource "aws_vpc_peering_connection" "vpc_peering" {
   peer_owner_id = var.peer_owner_id
   peer_vpc_id   = aws_vpc.vpc-infraestructura-1.id
   vpc_id        = aws_vpc.vpc-infraestructura-2.id
-}
+
 
 tags = {
 	Name = "infra1-to-infra2"
 }
-
+}
